@@ -20,4 +20,6 @@ if [[ -d "${project_root}/public" ]]; then
   cp -R "${project_root}/public/." "${output_dir}/"
 fi
 
+node "${script_dir}/inline-netlify-assets.mjs" "${output_dir}"
+
 echo "Packaged Netlify static frontend in netlify-dist."
