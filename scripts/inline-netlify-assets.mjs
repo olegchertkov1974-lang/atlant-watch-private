@@ -17,7 +17,7 @@ for (const match of [...html.matchAll(/<link\b[^>]*\brel="stylesheet"[^>]*\bhref
 
 html = html.replace(/<link\b[^>]*\brel="preload"[^>]*\bas="script"[^>]*>/gi, "");
 
-const runtimeShim = `<script data-inline-bootstrap>(function(){const p=HTMLScriptElement.prototype;const d=Object.getOwnPropertyDescriptor(p,"src");if(!d||!d.get||!d.set)return;Object.defineProperty(p,"src",{configurable:d.configurable,enumerable:d.enumerable,get:function(){const s=this.getAttribute("data-inline-source");return s?new URL(s,location.href).href:d.get.call(this)},set:function(v){d.set.call(this,v)}})})();</script>`;
+const runtimeShim = `<script data-inline-bootstrap>(function(){const e=Element.prototype;const g=e.getAttribute;e.getAttribute=function(n){if(String(n).toLowerCase()==="src"&&this instanceof HTMLScriptElement){const s=g.call(this,"data-inline-source");if(s)return new URL(s,location.href).href}return g.call(this,n)};const p=HTMLScriptElement.prototype;const d=Object.getOwnPropertyDescriptor(p,"src");if(!d||!d.get||!d.set)return;Object.defineProperty(p,"src",{configurable:d.configurable,enumerable:d.enumerable,get:function(){const s=g.call(this,"data-inline-source");return s?new URL(s,location.href).href:d.get.call(this)},set:function(v){d.set.call(this,v)}})})();</script>`;
 html = html.replace(/<head([^>]*)>/i, (tag) => `${tag}${runtimeShim}`);
 
 const embeddedScripts = new Set();
