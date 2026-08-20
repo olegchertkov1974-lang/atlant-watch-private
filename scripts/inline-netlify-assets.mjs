@@ -21,6 +21,7 @@ const runtimeShim = `<script data-inline-bootstrap>(function(){const e=Element.p
 html = html.replace(/<head([^>]*)>/i, (tag) => `${tag}${runtimeShim}`);
 
 const embeddedScripts = new Set();
+const inlineScriptTags = [];
 for (const match of [...html.matchAll(/<script\b([^>]*)\bsrc="([^"]+)"([^>]*)><\/script>/gi)]) {
   const source = match[2];
   const code = escapeScript(await readFile(assetPath(source), "utf8"));
@@ -29,10 +30,8 @@ for (const match of [...html.matchAll(/<script\b([^>]*)\bsrc="([^"]+)"([^>]*)><\
     .replace(/\s+/g, " ")
     .trim();
   embeddedScripts.add(source.split("/").pop());
-  html = html.replace(
-    match[0],
-    () => `<script${attributes ? ` ${attributes}` : ""} data-inline-source="${source}">${code}</script>`,
-  );
+  inlineScriptTags.push(`<script${attributes ? ` ${attributes}` : ""} data-inline-source="${source}">${code}</script>`);
+  html = html.replace(match[0], "");
 }
 
 const chunksDirectory = join(outputDirectory, "_next", "static", "chunks");
@@ -40,15 +39,16 @@ const remainingChunks = (await readdir(chunksDirectory))
   .filter((name) => name.endsWith(".js") && !embeddedScripts.has(name))
   .sort();
 
-if (remainingChunks.length > 0) {
-  const inlineChunks = await Promise.all(
-    remainingChunks.map(async (name) => {
-      const code = escapeScript(await readFile(join(chunksDirectory, name), "utf8"));
-      return `<script data-inline-source="/_next/static/chunks/${name}">${code}</script>`;
-    }),
-  );
-  html = html.replace("</body>", () => `${inlineChunks.join("")}\n</body>`);
-}
+const inlineChunks = await Promise.all(
+  remainingChunks.map(async (name) => {
+    const code = escapeScript(await readFile(join(chunksDirectory, name), "utf8"));
+    return `<script data-inline-source="/_next/static/chunks/${name}">${code}</script>`;
+  }),
+);
+
+const bootstrap = inlineScriptTags.pop();
+const orderedScripts = [...inlineScriptTags, ...inlineChunks, ...(bootstrap ? [bootstrap] : [])];
+html = html.replace("</body>", () => `${orderedScripts.join("")}\n</body>`);
 
 await writeFile(indexPath, html);
 console.log(`Inlined ${embeddedScripts.size + remainingChunks.length} scripts and styles into index.html.`);
