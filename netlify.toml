@@ -3,7 +3,7 @@
   publish = "netlify-dist"
 
 [[redirects]]
-  from = "/api/*"
-  to = "https://atlant-watch-private.olegchertkov1974.workers.dev/api/:splat"
+  from = "/*"
+  to = "https://atlant-watch-private.olegchertkov1974.workers.dev/:splat"
   status = 200
   force = true
