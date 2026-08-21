@@ -57,7 +57,7 @@ function formatCheckedAt(value: string | null) {
   return `обновлено ${formatTime(value)} мск`;
 }
 
-function MapPanel({ radius, alerts }: { radius: number; alerts: AlertItem[] }) {
+function MapPanel({ radius, alerts, selectedAlertId }: { radius: number; alerts: AlertItem[]; selectedAlertId: string | null }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const radiusRef = useRef<Circle | null>(null);
@@ -124,22 +124,31 @@ function MapPanel({ radius, alerts }: { radius: number; alerts: AlertItem[] }) {
         strong.textContent = alert.location;
         small.textContent = `${alert.title} · ${alert.source}`;
         popup.append(strong, document.createElement("br"), small);
-        L.circleMarker([alert.lat, alert.lon], {
-          radius: 7,
-          color: "#111820",
-          weight: 2,
-          fillColor: color,
+        const selected = alert.id === selectedAlertId;
+        const marker = L.circleMarker([alert.lat, alert.lon], {
+          radius: selected ? 12 : 7,
+          color: selected ? "#fff3bf" : "#111820",
+          weight: selected ? 4 : 2,
+          fillColor: selected ? "#ffd24a" : color,
           fillOpacity: 0.95,
         })
           .bindPopup(popup)
           .addTo(markersRef.current!);
+
+        if (selected) {
+          mapRef.current?.flyTo([alert.lat, alert.lon], Math.max(mapRef.current.getZoom(), 13), {
+            animate: true,
+            duration: 0.7,
+          });
+          marker.openPopup();
+        }
       });
     }
     void drawAlerts();
     return () => {
       cancelled = true;
     };
-  }, [alerts]);
+  }, [alerts, selectedAlertId]);
 
   return <div ref={containerRef} className="map-canvas" aria-label="Карта зоны Атлант-Парка" />;
 }
@@ -151,6 +160,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [feedError, setFeedError] = useState(false);
   const [telegramStage, setTelegramStage] = useState<TelegramStage>("checking");
+  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
 
   const refreshFeed = useCallback(async () => {
     setLoading(true);
@@ -243,7 +253,7 @@ export default function Home() {
 
       <section className="workspace">
         <div className="map-card">
-          <MapPanel radius={radius} alerts={alerts} />
+          <MapPanel radius={radius} alerts={alerts} selectedAlertId={selectedAlertId} />
           <div className="map-heading"><p>ЦЕНТР ЗОНЫ</p><strong>Атлант‑Парк, Обухово</strong><span>55.821573 · 38.246878</span></div>
           <div className="radius-control" aria-label="Выбор радиуса мониторинга">
             <p>РАДИУС</p>
@@ -275,7 +285,20 @@ export default function Home() {
 
             <div className="alert-list">
               {alerts.map((alert) => (
-                <article className={`alert-item ${alert.status}`} key={alert.id}>
+                <article
+                  className={`alert-item ${alert.status} ${selectedAlertId === alert.id ? "selected" : ""}`}
+                  key={alert.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selectedAlertId === alert.id}
+                  onClick={() => setSelectedAlertId(alert.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedAlertId(alert.id);
+                    }
+                  }}
+                >
                   <div className="alert-timeline"><span>{formatTime(alert.publishedAt)}</span><i /></div>
                   <div className="alert-content">
                     <div className="alert-meta">
