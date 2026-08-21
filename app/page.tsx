@@ -57,7 +57,17 @@ function formatCheckedAt(value: string | null) {
   return `обновлено ${formatTime(value)} мск`;
 }
 
-function MapPanel({ radius, alerts, selectedAlertId }: { radius: number; alerts: AlertItem[]; selectedAlertId: string | null }) {
+function MapPanel({
+  radius,
+  alerts,
+  selectedAlertId,
+  selectedAlert,
+}: {
+  radius: number;
+  alerts: AlertItem[];
+  selectedAlertId: string | null;
+  selectedAlert: AlertItem | null;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const radiusRef = useRef<Circle | null>(null);
@@ -141,7 +151,6 @@ function MapPanel({ radius, alerts, selectedAlertId }: { radius: number; alerts:
             animate: true,
             duration: 0.7,
           });
-          marker.openPopup();
         }
       });
     }
@@ -151,7 +160,19 @@ function MapPanel({ radius, alerts, selectedAlertId }: { radius: number; alerts:
     };
   }, [alerts, selectedAlertId]);
 
-  return <div ref={containerRef} className="map-canvas" aria-label="Карта зоны Атлант-Парка" />;
+  return (
+    <div className="map-panel-wrap">
+      <div ref={containerRef} className="map-canvas" aria-label="Карта зоны Атлант-Парка" />
+      {selectedAlert && (
+        <div className="selected-alert-card" role="status" aria-live="polite">
+          <span className={selectedAlert.sourceType}>{selectedAlert.sourceType === "official" ? "ОФИЦИАЛЬНО" : "МОНИТОРИНГ"}</span>
+          <strong>{selectedAlert.location}</strong>
+          <p>{selectedAlert.title}</p>
+          <small>{formatTime(selectedAlert.publishedAt)} · {selectedAlert.source}</small>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Home() {
@@ -254,7 +275,12 @@ export default function Home() {
 
       <section className="workspace">
         <div className="map-card">
-          <MapPanel radius={radius} alerts={alerts} selectedAlertId={selectedAlertId} />
+          <MapPanel
+            radius={radius}
+            alerts={alerts}
+            selectedAlertId={selectedAlertId}
+            selectedAlert={alerts.find((alert) => alert.id === selectedAlertId) ?? null}
+          />
           <div className="map-heading"><p>ЦЕНТР ЗОНЫ</p><strong>Атлант‑Парк, Обухово</strong><span>55.821573 · 38.246878</span></div>
           <div className="radius-control" aria-label="Выбор радиуса мониторинга">
             <p>РАДИУС</p>
