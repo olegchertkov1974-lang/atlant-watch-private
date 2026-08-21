@@ -135,8 +135,9 @@ function MapPanel({ radius, alerts, selectedAlertId }: { radius: number; alerts:
           .bindPopup(popup)
           .addTo(markersRef.current!);
 
-        if (selected) {
-          mapRef.current?.flyTo([alert.lat, alert.lon], Math.max(mapRef.current.getZoom(), 13), {
+        const map = mapRef.current;
+        if (selected && map) {
+          map.flyTo([alert.lat, alert.lon], Math.max(map.getZoom(), 13), {
             animate: true,
             duration: 0.7,
           });
